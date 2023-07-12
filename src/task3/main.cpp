@@ -194,6 +194,8 @@ private:
     {
         m_currentEngineTaskID = std::this_thread::get_id();
         
+        m_tasks.pop();
+        
         std::cout << "\n! The crew is starting engine (" << m_currentEngineTaskID << ")\n";
         std::this_thread::sleep_for(std::chrono::seconds(1));
         std::cout << "\n! The crew successfully started engine (" << m_currentEngineTaskID << ")\n";
@@ -203,6 +205,8 @@ private:
     {
         m_currentEngineTaskID = std::this_thread::get_id();
         
+        m_tasks.pop();
+        
         std::cout << "\n! The crew is stopping engine (" << m_currentEngineTaskID << ")\n";
         std::this_thread::sleep_for(std::chrono::seconds(1));
         std::cout << "\n! The crew successfully stopped engine (" << m_currentEngineTaskID << ")\n";
@@ -210,12 +214,24 @@ private:
     
     void engineStart()
     {
-        // TODO: thread manipulation
+        if (m_tasks.empty()
+         || m_tasks.front() != FullSpeedAhead
+         || m_tasks.front() != StopEngine)
+            return;
+        
+        std::thread engineCrewTask(&EngineCrew::simulateEngineStarting, this);
+        engineCrewTask.join();
     }
     
     void engineStop()
     {
-        // TODO: thread manipulation
+        if (m_tasks.empty()
+         || m_tasks.front() != FullSpeedAhead
+         || m_tasks.front() != StopEngine)
+            return;
+        
+        std::thread engineCrewTask(&EngineCrew::simulateEngineStopping, this);
+        engineCrewTask.join();
     }
 };
 
