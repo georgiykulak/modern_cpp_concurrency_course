@@ -1,6 +1,7 @@
 #include <iostream>
 #include <thread>
 #include <functional>
+#include <queue>
 
 enum Command : int
 {
@@ -23,10 +24,15 @@ public:
         m_thread = std::thread(iterate, std::ref(obj));
     }
     
-    ~IteratableThreadGuard()
+    void join()
     {
         if (m_thread.joinable())
             m_thread.join();
+    }
+    
+    ~IteratableThreadGuard()
+    {
+        join();
     }
     
 private:
@@ -36,22 +42,34 @@ private:
 class CleaningCrew
 {
 public:
-    CleaningCrew(const Command& commandHandle)
-     : m_commandHandle(commandHandle)
-     , m_threadGuard(&CleaningCrew::iterate, *this)
+    CleaningCrew()
+     : m_threadGuard(&CleaningCrew::iterate, *this)
     {}
 
     void clean()
     {
-        
+        m_tasks.push(Cleaning);
+    }
+    
+    void dropTasks()
+    {
+        auto emptyTasks = std::queue<Command>();
+        std::swap(m_tasks, emptyTasks);
+        m_tasks.push(Exit);
+        m_threadGuard.join();
     }
     
 protected:
     void iterate()
     {
-        while (m_commandHandle != Exit)
+        while (true)
         {
-            switch (m_commandHandle)
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            
+            if (m_tasks.empty())
+                continue;
+            
+            switch (m_tasks.front())
             {
                 case Exit:
                 {
@@ -60,11 +78,12 @@ protected:
                 break;
                 case Cleaning:
                 {
-                    clean();
+                    // TODO: simulateCleaining
                 }
                 break;
                 default:
                 {
+                    // Wait for valid command
                     std::this_thread::sleep_for(std::chrono::seconds(1));
                     continue;
                 }
@@ -73,34 +92,46 @@ protected:
     }
 
 private:
-    const Command& m_commandHandle;
     IteratableThreadGuard<CleaningCrew> m_threadGuard;
+    std::queue<Command> m_tasks;
 };
 
 class EngineCrew
 {
 public:
-    EngineCrew(const Command& commandHandle)
-     : m_commandHandle(commandHandle)
-     , m_threadGuard(&EngineCrew::iterate, *this)
+    EngineCrew()
+     : m_threadGuard(&EngineCrew::iterate, *this)
     {}
 
     void startEngine()
     {
-        
+        m_tasks.push(FullSpeedAhead);
     }
 
     void stopEngine()
     {
-        
+        m_tasks.push(StopEngine);
+    }
+    
+    void dropTasks()
+    {
+        auto emptyTasks = std::queue<Command>();
+        std::swap(m_tasks, emptyTasks);
+        m_tasks.push(Exit);
+        m_threadGuard.join();
     }
     
 protected:
     void iterate()
     {
-        while (m_commandHandle != Exit)
+        while (true)
         {
-            switch (m_commandHandle)
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            
+            if (m_tasks.empty())
+                continue;
+            
+            switch (m_tasks.front())
             {
                 case Exit:
                 {
@@ -109,16 +140,17 @@ protected:
                 break;
                 case FullSpeedAhead:
                 {
-                    startEngine();
+                    // TODO: simulateEngineStarting
                 }
                 break;
                 case StopEngine:
                 {
-                    stopEngine();
+                    // TODO: simulateEngineStopping
                 }
                 break;
                 default:
                 {
+                    // Wait for valid command
                     std::this_thread::sleep_for(std::chrono::seconds(1));
                     continue;
                 }
@@ -127,20 +159,13 @@ protected:
     }
 
 private:
-    const Command& m_commandHandle;
     IteratableThreadGuard<EngineCrew> m_threadGuard;
+    std::queue<Command> m_tasks;
 };
 
 class Captain
 {
 public:
-    
-    Captain()
-     : m_currentCommand{None}
-     , m_cleaningCrew{m_currentCommand}
-     , m_engineCrew{m_currentCommand}
-    {}
-
     void chooseCommand()
     {
         int input;
@@ -149,22 +174,48 @@ public:
     }
 
 private:
-    Command m_currentCommand;
     CleaningCrew m_cleaningCrew;
     EngineCrew m_engineCrew;
 
     bool runCommand(int input)
     {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        
         std::cout << "\nYou are a captain, choose your command to the crew\n"
                      "(1 - clean the boat, 2 - full speed ahead,\n"
                      " 3 - stop the engine, 100 - exit the program)\n";
         std::cout << "Enter command > ";
         std::cin >> input;
         
-        m_currentCommand = static_cast<Command>(input);
-        
-        if (m_currentCommand == Exit)
-            return false;
+        switch (input)
+        {
+            case Cleaning:
+            {
+                m_cleaningCrew.clean();
+            }
+            break;
+            case FullSpeedAhead:
+            {
+                m_engineCrew.startEngine();
+            }
+            break;
+            case StopEngine:
+            {
+                m_engineCrew.stopEngine();
+            }
+            break;
+            case Exit:
+            {
+                m_cleaningCrew.dropTasks();
+                m_engineCrew.dropTasks();
+                return false;
+            }
+            break;
+            default:
+            {
+                std::cout << "Command '" << input << "' is invalid, try again\n";
+            }
+        }
         
         return true;
     }
