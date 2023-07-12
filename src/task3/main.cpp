@@ -67,7 +67,10 @@ protected:
             std::this_thread::sleep_for(std::chrono::seconds(1));
             
             if (m_tasks.empty())
+            {
+                std::this_thread::sleep_for(std::chrono::seconds(1));
                 continue;
+            }
             
             switch (m_tasks.front())
             {
@@ -78,7 +81,7 @@ protected:
                 break;
                 case Cleaning:
                 {
-                    // TODO: simulateCleaining
+                    cleanBoat();
                 }
                 break;
                 default:
@@ -94,6 +97,27 @@ protected:
 private:
     IteratableThreadGuard<CleaningCrew> m_threadGuard;
     std::queue<Command> m_tasks;
+    std::thread::id m_currentCleanTaskID;
+    
+    void simulateCleaining()
+    {
+        m_currentCleanTaskID = std::this_thread::get_id();
+        
+        m_tasks.pop();
+        
+        std::cout <<  "\n!! The cleaning crew started cleaning (" << m_currentCleanTaskID << ")\n";
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::cout << "\n!! The cleaning crew finished cleaning (" << m_currentCleanTaskID << ")\n";
+    }
+    
+    void cleanBoat()
+    {
+        if (m_tasks.empty() || m_tasks.front() != Cleaning)
+            return;
+        
+        std::thread cleaningCrewTask(&CleaningCrew::simulateCleaining, this);
+        cleaningCrewTask.join();
+    }
 };
 
 class EngineCrew
@@ -129,7 +153,10 @@ protected:
             std::this_thread::sleep_for(std::chrono::seconds(1));
             
             if (m_tasks.empty())
+            {
+                std::this_thread::sleep_for(std::chrono::seconds(1));
                 continue;
+            }
             
             switch (m_tasks.front())
             {
@@ -140,12 +167,12 @@ protected:
                 break;
                 case FullSpeedAhead:
                 {
-                    // TODO: simulateEngineStarting
+                    engineStart();
                 }
                 break;
                 case StopEngine:
                 {
-                    // TODO: simulateEngineStopping
+                    engineStop();
                 }
                 break;
                 default:
@@ -161,6 +188,35 @@ protected:
 private:
     IteratableThreadGuard<EngineCrew> m_threadGuard;
     std::queue<Command> m_tasks;
+    std::thread::id m_currentEngineTaskID;
+    
+    void simulateEngineStarting()
+    {
+        m_currentEngineTaskID = std::this_thread::get_id();
+        
+        std::cout << "\n! The crew is starting engine (" << m_currentEngineTaskID << ")\n";
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::cout << "\n! The crew successfully started engine (" << m_currentEngineTaskID << ")\n";
+    }
+    
+    void simulateEngineStopping()
+    {
+        m_currentEngineTaskID = std::this_thread::get_id();
+        
+        std::cout << "\n! The crew is stopping engine (" << m_currentEngineTaskID << ")\n";
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::cout << "\n! The crew successfully stopped engine (" << m_currentEngineTaskID << ")\n";
+    }
+    
+    void engineStart()
+    {
+        // TODO: thread manipulation
+    }
+    
+    void engineStop()
+    {
+        // TODO: thread manipulation
+    }
 };
 
 class Captain
