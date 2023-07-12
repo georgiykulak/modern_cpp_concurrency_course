@@ -15,7 +15,10 @@ template<typename Iteratable>
 class IteratableThreadGuard
 {
 public:
-    IteratableThreadGuard(std::function<void(Iteratable&)> iterate, Iteratable & obj)
+    IteratableThreadGuard(
+        std::function<void(Iteratable&)> iterate,
+        Iteratable & obj
+    )
     {
         m_thread = std::thread(iterate, std::ref(obj));
     }
@@ -46,7 +49,27 @@ public:
 protected:
     void iterate()
     {
-        
+        while (m_commandHandle != Exit)
+        {
+            switch (m_commandHandle)
+            {
+                case Exit:
+                {
+                    return;
+                }
+                break;
+                case Cleaning:
+                {
+                    clean();
+                }
+                break;
+                default:
+                {
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                    continue;
+                }
+            }
+        }
     }
 
 private:
@@ -75,7 +98,32 @@ public:
 protected:
     void iterate()
     {
-        
+        while (m_commandHandle != Exit)
+        {
+            switch (m_commandHandle)
+            {
+                case Exit:
+                {
+                    return;
+                }
+                break;
+                case FullSpeedAhead:
+                {
+                    startEngine();
+                }
+                break;
+                case StopEngine:
+                {
+                    stopEngine();
+                }
+                break;
+                default:
+                {
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                    continue;
+                }
+            }
+        }
     }
 
 private:
