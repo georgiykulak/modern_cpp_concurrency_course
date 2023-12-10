@@ -1,0 +1,3 @@
+[submodule "cpp_concurrency_masterclass"]
+	path = cpp_concurrency_masterclass
+	url = git@github.com:kasunindikaliyanage/cpp_concurrency_masterclass.git
